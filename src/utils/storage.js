@@ -1,5 +1,6 @@
 const CART_KEY = 'coffee_shop_cart'
 const ORDER_KEY = 'coffee_shop_orders'
+const FAVORITES_KEY = 'favorites'
 
 export function getCart() {
   try {
@@ -151,6 +152,39 @@ export function createOrder(cart) {
   clearCart()
 
   return order
+}
+
+export function getFavorites() {
+  try {
+    const data = localStorage.getItem(FAVORITES_KEY)
+    return data ? JSON.parse(data) : []
+  } catch (e) {
+    return []
+  }
+}
+
+export function saveFavorites(favorites) {
+  try {
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites))
+  } catch (e) {
+    console.error('Failed to save favorites:', e)
+  }
+}
+
+export function toggleFavorite(drinkId) {
+  const favorites = getFavorites()
+  const index = favorites.indexOf(drinkId)
+  if (index > -1) {
+    favorites.splice(index, 1)
+  } else {
+    favorites.push(drinkId)
+  }
+  saveFavorites(favorites)
+  return favorites
+}
+
+export function isFavorite(drinkId) {
+  return getFavorites().includes(drinkId)
 }
 
 export function formatDate(timestamp) {

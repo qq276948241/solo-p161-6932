@@ -39,7 +39,7 @@
 
     <div class="category-tabs">
       <div
-        v-for="cat in categories"
+        v-for="cat in categoryList"
         :key="cat.id"
         class="category-tab"
         :class="{ active: currentCategory === cat.id }"
@@ -50,7 +50,15 @@
       </div>
     </div>
 
-    <div class="drinks-grid">
+    <div v-if="currentCategory === 'favorites' && filteredDrinks.length === 0" class="empty-favorites">
+      <svg class="empty-star-icon" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--color-caramel)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/>
+      </svg>
+      <h3 class="empty-fav-title">还没有收藏</h3>
+      <p class="empty-fav-desc">点击饮品卡片上的星星即可收藏</p>
+    </div>
+
+    <div v-else class="drinks-grid">
       <div
         v-for="drink in filteredDrinks"
         :key="drink.id"
@@ -59,6 +67,14 @@
       >
         <div class="drink-image-wrap">
           <span class="drink-emoji">{{ drink.icon }}</span>
+          <button class="fav-btn" :class="{ favorited: favoriteIds.includes(drink.id) }" @click.stop="handleToggleFavorite(drink.id)">
+            <svg v-if="!favoriteIds.includes(drink.id)" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-caramel)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/>
+            </svg>
+            <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="var(--color-caramel)" stroke="var(--color-caramel)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/>
+            </svg>
+          </button>
         </div>
         <div class="drink-info">
           <div class="drink-names">
@@ -155,7 +171,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { categories, drinks, banners } from '../data/menu.js'
-import { addToCart as addToCartStorage } from '../utils/storage.js'
+import { addToCart as addToCartStorage, getFavorites, toggleFavorite } from '../utils/storage.js'
 
 const currentBanner = ref(0)
 const currentCategory = ref('pour-over')
@@ -163,10 +179,21 @@ const showDetail = ref(false)
 const selectedDrink = ref(null)
 const selectedSizeId = ref('M')
 const quantity = ref(1)
+const favoriteIds = ref(getFavorites())
 
 let bannerTimer = null
 
+const categoryList = computed(() => {
+  return [
+    ...categories,
+    { id: 'favorites', name: '收藏', nameEn: 'Favorites' }
+  ]
+})
+
 const filteredDrinks = computed(() => {
+  if (currentCategory.value === 'favorites') {
+    return drinks.filter(d => favoriteIds.value.includes(d.id))
+  }
   return drinks.filter(d => d.categoryId === currentCategory.value)
 })
 
@@ -189,6 +216,10 @@ function openDetail(drink) {
 
 function closeDetail() {
   showDetail.value = false
+}
+
+function handleToggleFavorite(drinkId) {
+  favoriteIds.value = toggleFavorite(drinkId)
 }
 
 function quickAdd(drink) {
@@ -217,6 +248,7 @@ function stopBannerAutoPlay() {
 
 onMounted(() => {
   startBannerAutoPlay()
+  favoriteIds.value = getFavorites()
 })
 
 onUnmounted(() => {
@@ -411,6 +443,55 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   margin-bottom: 10px;
+  position: relative;
+}
+
+.fav-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  background-color: rgba(255, 248, 240, 0.85);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+.fav-btn:active {
+  transform: scale(0.85);
+}
+
+.fav-btn.favorited {
+  background-color: rgba(212, 165, 116, 0.2);
+}
+
+.empty-favorites {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 40px;
+}
+
+.empty-star-icon {
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-fav-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 6px;
+}
+
+.empty-fav-desc {
+  font-size: 13px;
+  color: var(--color-text-muted);
 }
 
 .drink-emoji {
