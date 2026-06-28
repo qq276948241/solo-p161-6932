@@ -67,11 +67,21 @@
       >
         <div class="drink-image-wrap">
           <span class="drink-emoji">{{ drink.icon }}</span>
-          <button class="fav-btn" :class="{ favorited: favoriteIds.includes(drink.id) }" @click.stop="handleToggleFavorite(drink.id)">
-            <svg v-if="!favoriteIds.includes(drink.id)" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-caramel)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/>
-            </svg>
-            <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="var(--color-caramel)" stroke="var(--color-caramel)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <button
+            class="fav-btn"
+            :class="{ favorited: isFav(drink.id) }"
+            @click.stop="toggleFavorite(drink.id)"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              :fill="isFav(drink.id) ? 'var(--color-caramel)' : 'none'"
+              stroke="var(--color-caramel)"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
               <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/>
             </svg>
           </button>
@@ -171,7 +181,8 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { categories, drinks, banners } from '../data/menu.js'
-import { addToCart as addToCartStorage, getFavorites, toggleFavorite } from '../utils/storage.js'
+import { addToCart as addToCartStorage } from '../utils/storage.js'
+import { useFavorites } from '../composables/useFavorites.js'
 
 const currentBanner = ref(0)
 const currentCategory = ref('pour-over')
@@ -179,7 +190,8 @@ const showDetail = ref(false)
 const selectedDrink = ref(null)
 const selectedSizeId = ref('M')
 const quantity = ref(1)
-const favoriteIds = ref(getFavorites())
+
+const { favoriteIds, toggle: toggleFavorite, isFav } = useFavorites()
 
 let bannerTimer = null
 
@@ -218,10 +230,6 @@ function closeDetail() {
   showDetail.value = false
 }
 
-function handleToggleFavorite(drinkId) {
-  favoriteIds.value = toggleFavorite(drinkId)
-}
-
 function quickAdd(drink) {
   const size = drink.cupSizes[1] || drink.cupSizes[0]
   addToCartStorage(drink, size, 1)
@@ -248,7 +256,6 @@ function stopBannerAutoPlay() {
 
 onMounted(() => {
   startBannerAutoPlay()
-  favoriteIds.value = getFavorites()
 })
 
 onUnmounted(() => {
